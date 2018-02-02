@@ -12,3 +12,21 @@ number of skilled slaves;
 number of regional merchants;
 number of far traveling merchants;
 number of really far traveling merchants;
+
+Functions That Simplify Stdscr and Other Things
+-----------------------------------------------
+
+refresh is a function:
+  use the curses library to refresh the screen
+
+display a title is a function:
+  use the curses library to display a centered, inverted title across the top of the screen
+
+display statistics is a function:
+  display your saffron harvests per second, your saffron count, the percentage of capacity, and you sales and saffron per second
+  also display a ratio between your sales per second and your saffron per second
+  make all of this in inverted text and on the top
+  
+print is a function:
+  print a string value with stdscr at certain coords.
+
