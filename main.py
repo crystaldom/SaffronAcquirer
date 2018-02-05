@@ -1,5 +1,6 @@
 import curses
 from curses import wrapper
+#note that you can use the curses.nodelay() to set a timed input on a typed delay thing. 
 
 # Classes
 
