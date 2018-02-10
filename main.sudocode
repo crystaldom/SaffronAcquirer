@@ -29,4 +29,8 @@ display statistics is a function:
   
 print is a function:
   print a string value with stdscr at certain coords.
+  
+  
+Functions that actually display shit
+------------------------------------
 
