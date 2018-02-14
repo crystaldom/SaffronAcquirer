@@ -3,6 +3,7 @@ from curses import wrapper
 #note that you can use the curses.nodelay() to set a timed input on a typed delay thing.
 import time
 import random
+from threading import Thread
 
 # Classes
 
@@ -12,6 +13,9 @@ poundsOfSaffron = 0;
 saffronPerSecond = 0;
 money = 0;
 moneyPerSecond = 0;
+
+#Variables involving the multithread checker
+statprintMultiThreadLoopBool = True
 
 #Time 1 slots
 currenttime1 = 0
@@ -70,7 +74,9 @@ def main(stdscr):
     def regularSlaveFarmingAlgorithm():
         global poundsOfSaffron
         global farmCapacity
+        global saffronPerSecond
         projectedSaffronGain = slaves * slaveEfficiency
+        saffronPerSecond = slaves * slaveEfficiency
         projectedNetSaffon = projectedSaffronGain + poundsOfSaffron
         if projectedNetSaffon > ogfarmCapacity:
             extraSaffron = projectedNetSaffon - ogfarmCapacity
@@ -134,6 +140,14 @@ def main(stdscr):
         startLoopTime3 = time.time()
 
 
+    #The multithread thingy
+    def statprintAlwaysUpdater():
+        resetStartLooptime1()
+        while statprintMultiThreadLoopBool == True:
+            if timecheck1(1) == True:
+                regularSlaveFarmingAlgorithm()
+            statprint()
+
     #Menu functions and shit
 
     def menu():
@@ -142,7 +156,6 @@ def main(stdscr):
         curses.noecho()
         stdscr.nodelay(1)
         title("Main Menu")
-        statprint()
         cprint("[1] Farm Saffron By Hand", 6, 28)
         cprint("[2] Purchase Slaves", 7, 28)
         cprint("[3] Hire Merchants", 8, 28)
@@ -150,10 +163,10 @@ def main(stdscr):
         cprint("[5] Sell your saffron", 10, 28)
         stdscr.addstr(23, 0, "Choose a number: ")
         while runMenu == True:
-            statprint()
-            stdscr.move(23, 17)
             if timecheck1(1) == True:
                 regularSlaveFarmingAlgorithm()
+            statprint()
+            stdscr.move(23, 17)
             menuInput = stdscr.getch()
             if menuInput == ord('1'):
                 runMenu = False;
@@ -161,6 +174,7 @@ def main(stdscr):
                 farm()
             elif menuInput == ord('q'):
                 runMenu = False;
+                stdscr.clear()
             elif menuInput == ord('5'):
                 manualSell()
 
@@ -169,42 +183,75 @@ def main(stdscr):
         global poundsOfSaffron
         global farmCapacity
         amountOfSaffronSelling = poundsOfSaffron
-        sellingPrice = random.randint(lowerSellingRange, upperSellingRange)
+        if amountOfSaffronSelling == ogfarmCapacity:
+            sellingPrince = upperSellingRange
+        else:
+            sellingPrice = random.randint(lowerSellingRange, upperSellingRange)
         money = money + (amountOfSaffronSelling * sellingPrice)
         poundsOfSaffron = poundsOfSaffron - amountOfSaffronSelling
         farmCapacity = ogfarmCapacity
 
     def farm():
         stdscr.nodelay(0)
+        curses.halfdelay(5)
         global poundsOfSaffron
         global farmingLoop
         global farmCapacity
         global money
         while farmingLoop == True:
-            title("Saffron Aquirer")
+            title("FarmLand")
             statprint()
             curses.echo()
             if timecheck1(1) == True:
                 regularSlaveFarmingAlgorithm()
             stdscr.move(23,0)
-            farmInput = stdscr.getstr(10)
-            if farmInput.lower() == "saffron" and (poundsOfSaffron + 1) <= ogfarmCapacity:
-                poundsOfSaffron = poundsOfSaffron + 1
-                farmCapacity = farmCapacity - 1
-                stdscr.clear()
-            elif farmInput == "cheat1":
-                poundsOfSaffron = poundsOfSaffron + 100
-                stdscr.clear()
-            elif farmInput == "quit":
-                farmingLoop = False
-            elif farmInput.lower() == "sell":
-                manualSell()
-                stdscr.clear()
-            elif farmInput.lower() == "menu":
-                stdscr.clear()
-                menu()
+            getch = stdscr.getch()
+            if getch == ord("s"):
+                getchstr = "s"
+                farmInput = getchstr + stdscr.getstr(10)
+                if farmInput.lower() == "saffron" and (poundsOfSaffron + 1) <= ogfarmCapacity:
+                    poundsOfSaffron = poundsOfSaffron + 1
+                    farmCapacity = farmCapacity - 1
+                    stdscr.clear()
+                    farm()
+                elif farmInput == "cheat1":
+                    poundsOfSaffron = poundsOfSaffron + 100
+                    stdscr.clear()
+                elif farmInput == "quit":
+                    farmingLoop = False
+                elif farmInput.lower() == "sell":
+                    manualSell()
+                    stdscr.clear()
+                    farm()
+                elif farmInput.lower() == "menu":
+                    stdscr.clear()
+                    menu()
+                elif farmInput.lower() =="err":
+                    print ("SUCESS")
+                else:
+                    stdscr.clear()
+                    farm()
+            elif getch == ord("m"):
+                getchstr = "m"
+                farmInput = getchstr + stdscr.getstr(10)
+                if farmInput.lower() == "menu":
+                    stdscr.clear()
+                    menu()
+                else:
+                    stdscr.clear()
+                    farm()
+            elif getch == ord("q"):
+                getchstr = "q"
+                farmInput = getchstr + stdscr.getstr(10)
+                if farmInput.lower() == "quit":
+                    farmingLoop = False
+                    stdscr.clear()
             else:
                 stdscr.clear()
-    resetStartLooptime1()
+                farm()
+
+            #DO AN ELSE STATEMENT. IF GETCH IS Q, ASK FOR QUIT, ETC, ETC.
+
+
     menu()
 wrapper(main)
