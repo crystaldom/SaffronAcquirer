@@ -5,71 +5,19 @@ import time
 import random
 from threading import Thread
 
-# Classes
-
+unlockRegionalMerchants = False
+unlockFarTravelingMerchants = False
+unlockInternationalMerchants = False
 # Variables for time and saffron
-farmingLoop = True
 poundsOfSaffron = 0;
-saffronPerSecond = 0;
+total_farmers = 0;
 money = 0;
-moneyPerSecond = 0;
+total_merchants = 0;
 
-#Variables involving the multithread checker
-statprintMultiThreadLoopBool = True
-
-#Time 1 slots
-currenttime1 = 0
-startLoopTime1 = 0
-#Time 2 slots
-currenttime2 = 0
-startLoopTime2 = 0
-#Time 3 slots
-currenttime3 = 0
-startLoopTime3 = 0
 
 #Farm Variables
 farmCapacity = 30;
 ogfarmCapacity = 30
-farmLevel = 1
-numberOfAcres = None;
-
-#Selling Variables
-lowerSellingRange = 2
-upperSellingRange = 5
-
-#Merhant Vars
-merchants = 0;
-regionalMerchants = 0;
-farTravelingMerchants = 0;
-ftmprice = 400
-ftmEfficiency = 100
-reallyFarTravelingMerchants = 0;
-rftmprice = 1000
-rftmEfficiency = 500
-salesPerSecond = 0;
-merchantEfficiency = 1;
-merchantPrice = 100
-
-#Slave Vars BTW this is a work in progress
-slaves = 0;
-slavePrice = 100
-skilledSlaves = 0;
-slaveEfficiency = 2; #The number of saffron pounds that the slaves produce every second
-# Functions that simplify curses commands
-workers = 0
-workerPrice = 130
-workerEfficiency = 3
-
-#Unlocks
-spanishUnlock = False
-plague = False
-india = False
-persianFarms = False
-christianityDyes = False
-
-MerchantMoneyThatWillBeMade = 0;
-ftMerchantmoneyThatWillBeMade = 0;
-rftMerchantMoneyThatWillBeMade = 0;
 
 u1check = False
 u2check = False
@@ -77,10 +25,105 @@ u3check = False
 u4check = False
 u5check = False
 u6check = False
+u7check = False
+u8check = False
+lowerSellingRange = 1
+upperSellingRange = 5
 
+def main(stdscr): #The function that runs all of the other functions
+    class merchant(object):
+        def __init__(self, efficiency, price, saffronLowerSellRange, saffronUpperSellRange, sellFrequency):
+            self.efficiency = efficiency; #The amount of saffron it sells per time instance
+            self.price = price; #The price the player has to pay in order to purchase a merchant
+            self.number = 0; #The number of merchants there are
+            self.saffronLowerSellRange = saffronLowerSellRange #The lowest number that saffron can be sold for
+            self.saffronUpperSellRange = saffronUpperSellRange #The highest number that saffron can be sold for
+            self.sellFrequency = sellFrequency #The amount of seconds between each merchant sale
+            self.startTime = time.time() #The starting time (Can't really explain this but it is necessary if I dont want to use recursion)
 
+        def buyMerchant(self): #Function that buys a merchant if player can afford it
+            global money
+            global total_merchants
+            if money >= self.price:
+                money = money - self.price;
+                self.number = self.number + 1
+                total_merchants = total_merchants + 1
 
-def main(stdscr):
+        def merchantRoutine(self): #Sells saffron if there is anything to sell
+            global poundsOfSaffron
+            global money
+            global farmCapacity
+            projectedSale = self.number * self.efficiency
+            saffronSellPrice = random.randint(self.saffronLowerSellRange, self.saffronUpperSellRange)
+            if projectedSale >= poundsOfSaffron:
+                finalSale = poundsOfSaffron;
+            else:
+                finalSale = projectedSale
+            poundsOfSaffron = poundsOfSaffron - finalSale
+            money = money + (self.number * self.efficiency * saffronSellPrice)
+            farmCapacity = farmCapacity + finalSale
+
+        def checkTime(self): #Checks to see if the time has elapsed since last sale, and then proceeds to sell the stuff if this is true
+            currentTime = time.time() - self.startTime
+            if currentTime >= self.sellFrequency:
+                self.merchantRoutine()
+                self.resetStartTime()
+                return True
+            else:
+                return False
+
+        def resetStartTime(self): #Sets the start time to the current time
+            self.startTime = time.time()
+
+    class farmer(object): #Includes slaves, workers, skilled artisans, etc
+        def __init__(self, efficiency, price, frequency):
+            self.efficiency = efficiency
+            self.price = price
+            self.number = 0
+            self.frequency = frequency
+            self.startTime = time.time()
+
+        def buyFarmer(self): #The function that is run when the user wants to buy a new farmer
+            global money
+            global total_farmers
+            if money >= self.price:
+                money = money - self.price
+                self.number = self.number + 1
+                total_farmers = total_farmers + 1
+
+        def farmerRoutine(self): #The function that is run every second or so
+            global poundsOfSaffron
+            global farmCapacity
+            expectedSaffronHarvest = self.number * self.efficiency
+            if expectedSaffronHarvest >= farmCapacity:
+                expectedSaffronHarvest = farmCapacity
+                finalHarvest = expectedSaffronHarvest
+            else:
+                finalHarvest = expectedSaffronHarvest
+            poundsOfSaffron = poundsOfSaffron + finalHarvest
+            farmCapacity = ogfarmCapacity - poundsOfSaffron
+
+        def checkTime(self): #Checks if a certain time has elapsed since last harvest, and then harvests if this is true
+            currentTime = time.time() - self.startTime
+            if currentTime >= self.frequency:
+                self.farmerRoutine()
+                self.resetStartTime()
+                return True
+            else: # The true and false are not really used, they just fill in gaps in the code.
+                return False
+
+        def resetStartTime(self): #Function that resets the start time
+            self.startTime = time.time()
+
+    def checkTimeAll():
+        regularMerchant.checkTime()
+        regionalMerchant.checkTime()
+        farTravelingMerchant.checkTime()
+        internationalMerchant.checkTime()
+        slave.checkTime()
+        worker.checkTime()
+        skilledWorker.checkTime()
+
     def refresh():
         stdscr.refresh();
 
@@ -92,155 +135,13 @@ def main(stdscr):
         refresh()
 
     def statprint():
-        stdscr.addstr(1,0,("Pounds Of Saffron "+str(poundsOfSaffron)+" | Saffron Per Second " + str(saffronPerSecond)).center(80),curses.A_REVERSE)
-        stdscr.addstr(2,0,(" Money "+ str(money) + " | Money/Sales Per Second " + str(moneyPerSecond)).center(80),curses.A_REVERSE)
-        stdscr.addstr(3,0, ("Farm Capacity Left: "+ str(farmCapacity)).center(80), curses.A_REVERSE)
+        stdscr.addstr(1,0,("Pounds Of Saffron "+str(poundsOfSaffron)+" | Farmers " + str(total_farmers)).center(80),curses.A_REVERSE)
+        stdscr.addstr(2,0,(" Money "+ str(money) + " | Merchants " + str(total_merchants)).center(80),curses.A_REVERSE)
+        stdscr.addstr(3,0, ("Farm Capacity Left: "+ str(farmCapacity) + "/" + str(ogfarmCapacity)).center(80), curses.A_REVERSE)
         refresh()
 
     def noecho():
         curses.noecho()
-
-    def regularSlaveFarmingAlgorithm():
-        global poundsOfSaffron
-        global farmCapacity
-        global saffronPerSecond
-        projectedSaffronGain = slaves * slaveEfficiency
-        saffronPerSecond = slaves * slaveEfficiency + (workers * workerEfficiency)
-        projectedNetSaffon = projectedSaffronGain + poundsOfSaffron
-        if projectedNetSaffon > ogfarmCapacity:
-            extraSaffron = projectedNetSaffon - ogfarmCapacity
-            acceptableSaffronGain = projectedNetSaffon - extraSaffron
-            acceptableSaffronGain = acceptableSaffronGain - poundsOfSaffron
-            poundsOfSaffron = poundsOfSaffron + acceptableSaffronGain
-            farmCapacity = farmCapacity - acceptableSaffronGain
-        else:
-            poundsOfSaffron = projectedSaffronGain + poundsOfSaffron
-            farmCapacity = farmCapacity - projectedSaffronGain
-
-    def workerFarmingAlgorithm():
-        global poundsOfSaffron
-        global farmCapacity
-        global saffronPerSecond
-        projectedSaffronGain = workers * workerEfficiency
-        projectedNetSaffon = projectedSaffronGain + poundsOfSaffron
-        if projectedNetSaffon > ogfarmCapacity:
-            extraSaffron = projectedNetSaffon - ogfarmCapacity
-            acceptableSaffronGain = projectedNetSaffon - extraSaffron
-            acceptableSaffronGain = acceptableSaffronGain - poundsOfSaffron
-            poundsOfSaffron = poundsOfSaffron + acceptableSaffronGain
-            farmCapacity = farmCapacity - acceptableSaffronGain
-        else:
-            poundsOfSaffron = projectedSaffronGain + poundsOfSaffron
-            farmCapacity = farmCapacity - projectedSaffronGain
-
-    def regularMerchantSellingAlgorithm():
-        global MerchantMoneyThatWillBeMade
-        global poundsOfSaffron
-        global salesPerSecond
-        global moneyPerSecond
-        global money
-        global farmCapacity
-        saffronToSell = merchants * merchantEfficiency
-        if poundsOfSaffron < saffronToSell:
-            saffronToSell = poundsOfSaffron
-        MerchantMoneyThatWillBeMade = random.randint(lowerSellingRange, upperSellingRange) * saffronToSell
-        poundsOfSaffron = poundsOfSaffron - saffronToSell
-        farmCapacity = farmCapacity + saffronToSell
-        money = money + MerchantMoneyThatWillBeMade
-        moneyPerSecond = MerchantMoneyThatWillBeMade + (ftMerchantmoneyThatWillBeMade / 10) + (rftMerchantMoneyThatWillBeMade / 100)
-
-    def ftMerchantSellingAlgorithm():
-        global ftMerchantmoneyThatWillBeMade
-        global poundsOfSaffron
-        global moneyPerSecond
-        global money
-        global farmCapacity
-        global poundsOfSaffron
-        global salesPerSecond
-        global moneyPerSecond
-        global money
-        global farmCapacity
-        saffronToSell = farTravelingMerchants * ftmEfficiency
-        if poundsOfSaffron < saffronToSell:
-            saffronToSell = poundsOfSaffron
-        ftMerchantmoneyThatWillBeMade = random.randint(lowerSellingRange + 2, upperSellingRange + 2) * saffronToSell
-        poundsOfSaffron = poundsOfSaffron - saffronToSell
-        farmCapacity = farmCapacity + saffronToSell
-        money = money + ftMerchantmoneyThatWillBeMade
-        moneyPerSecond = (ftMerchantmoneyThatWillBeMade / 10) + MerchantMoneyThatWillBeMade + (rftMerchantMoneyThatWillBeMade / 100)
-
-    def rftMerchantSellingAlgorithm():
-        global rftMerchantMoneyThatWillBeMade
-        global poundsOfSaffron
-        global moneyPerSecond
-        global money
-        global farmCapacity
-        global poundsOfSaffron
-        global salesPerSecond
-        global moneyPerSecond
-        global money
-        global farmCapacity
-        saffronToSell = farTravelingMerchants * ftmEfficiency
-        if poundsOfSaffron < saffronToSell:
-            saffronToSell = poundsOfSaffron
-        rftMerchantMoneyThatWillBeMade = random.randint(lowerSellingRange + 7, upperSellingRange + 7) * saffronToSell
-        poundsOfSaffron = poundsOfSaffron - saffronToSell
-        farmCapacity = farmCapacity + saffronToSell
-        money = money + rftMerchantMoneyThatWillBeMade
-        moneyPerSecond = (ftMerchantmoneyThatWillBeMade / 10) + MerchantMoneyThatWillBeMade + (rftMerchantMoneyThatWillBeMade / 100)
-
-
-
-    #Time 1
-    def timecheck1(x): # Will check for a X second period
-        fetchCurrentTime1()
-        if currenttime1 >= x:
-            resetStartLooptime1()
-            return True;
-        else:
-            return False;
-
-    def fetchCurrentTime1():
-        global currenttime1;
-        currenttime1 = time.time() - startLoopTime1
-
-    def resetStartLooptime1():
-        global startLoopTime1
-        startLoopTime1 = time.time()
-
-    #Time 2
-    def timecheck2(x): # Will check for a X second period
-        fetchCurrentTime2()
-        if currenttime2 >= x:
-            resetStartLooptime2()
-            return True;
-        else:
-            return False;
-
-    def fetchCurrentTime2():
-        global currenttime2;
-        currenttime2 = time.time() - startLoopTime2
-
-    def resetStartLooptime2():
-        global startLoopTime2
-        startLoopTime2 = time.time()
-
-    #Time 3
-    def timecheck3(x): # Will check for a X second period
-        fetchCurrentTime3()
-        if currenttime3 >= x:
-            resetStartLooptime3()
-            return True;
-        else:
-            return False;
-
-    def fetchCurrentTime3():
-        global currenttime3;
-        currenttime3 = time.time() - startLoopTime3
-
-    def resetStartLooptime3():
-        global startLoopTime3
-        startLoopTime3 = time.time()
 
     def manualSell():
         global money
@@ -255,7 +156,18 @@ def main(stdscr):
         poundsOfSaffron = poundsOfSaffron - amountOfSaffronSelling
         farmCapacity = ogfarmCapacity
 
-    #Menu functions and shit
+    #FARMER: EFFICIENCY, PRICE, FREQUENCY
+    #MERCHANT: EFFICICENCY, PRICE, RANGELOWER, RANGEUPPER, FREQUENCY
+    #Merchants
+    regularMerchant = merchant(1, 150, 1, 3, 1)
+    regionalMerchant = merchant(2, 300, 2, 5, 2)
+    farTravelingMerchant = merchant(4, 700, 5, 8, 5)
+    internationalMerchant = merchant(10, 1600, 20, 30, 60)
+    #Farmers
+    slave = farmer(1, 150, 1)
+    worker = farmer(2, 300, 1)
+    skilledWorker = farmer(3, 500, 1)
+    # Room functions
 
     def menu():
         curses.curs_set(False)
@@ -264,20 +176,13 @@ def main(stdscr):
         stdscr.nodelay(1)
         title("Main Menu")
         cprint("[1] Farm Saffron By Hand", 6, 28)
-        cprint("[2] Purchase Slaves", 7, 28)
+        cprint("[2] Acquire Farmers", 7, 28)
         cprint("[3] Hire Merchants", 8, 28)
         cprint("[4] Upgrades", 9, 28)
         cprint("[5] Sell your saffron", 10, 28)
         stdscr.addstr(23, 0, "Choose a number: ")
         while runMenu == True:
-            if timecheck1(1) == True:
-                regularSlaveFarmingAlgorithm()
-                regularMerchantSellingAlgorithm()
-                workerFarmingAlgorithm()
-            if timecheck2(10) == True:
-                ftMerchantSellingAlgorithm()
-            if timecheck3(100) == True:
-                rftMerchantSellingAlgorithm()
+            checkTimeAll()
             statprint()
             stdscr.move(23, 17)
             menuInput = stdscr.getch()
@@ -307,25 +212,17 @@ def main(stdscr):
 
 
     def farm():
+        farmingLoop = True
         stdscr.nodelay(0)
         curses.halfdelay(5)
         global poundsOfSaffron
-        global farmingLoop
         global farmCapacity
         global money
-        farmingLoop = True
         while farmingLoop == True:
             title("Farm Saffron")
             statprint()
             curses.echo()
-            if timecheck1(1) == True:
-                regularSlaveFarmingAlgorithm()
-                regularMerchantSellingAlgorithm()
-                workerFarmingAlgorithm()
-            if timecheck2(10) == True:
-                ftMerchantSellingAlgorithm()
-            if timecheck3(100) == True:
-                rftMerchantSellingAlgorithm()
+            checkTimeAll()
             stdscr.move(23,0)
             getch = stdscr.getch()
             if getch == ord("s"):
@@ -335,41 +232,35 @@ def main(stdscr):
                     poundsOfSaffron = poundsOfSaffron + 1
                     farmCapacity = farmCapacity - 1
                     stdscr.clear()
-                    farm()
-                elif farmInput == "cheat1":
-                    poundsOfSaffron = poundsOfSaffron + 100
+                elif farmInput == "scheat":
+                    poundsOfSaffron = poundsOfSaffron + 500
+                    money = 1000000
                     stdscr.clear()
-                elif farmInput == "quit":
-                    farmingLoop = False
                 elif farmInput.lower() == "sell":
                     manualSell()
                     stdscr.clear()
-                    farm()
-                elif farmInput.lower() == "menu":
-                    farmingLoop == False
-                    stdscr.clear()
-                    menu()
                 else:
                     stdscr.clear()
-                    farm()
             elif getch == ord("m"):
                 getchstr = "m"
                 farmInput = getchstr + stdscr.getstr(10)
                 if farmInput.lower() == "menu":
+                    farmingLoop = False
                     stdscr.clear()
                     menu()
                 else:
                     stdscr.clear()
-                    farm()
             elif getch == ord("q"):
                 getchstr = "q"
                 farmInput = getchstr + stdscr.getstr(10)
                 if farmInput.lower() == "quit":
                     farmingLoop = False
                     stdscr.clear()
+                else:
+                    stdscr.clear()
             else:
                 stdscr.clear()
-                farm()
+
 
     def purchaseUpgrades():
         upgradeLoop = True
@@ -384,6 +275,10 @@ def main(stdscr):
         global u4check
         global u5check
         global u6check
+        global u7check
+        global unlockRegionalMerchants
+        global unlockFarTravelingMerchants
+        global unlockInternationalMerchants
         global upperSellingRange
         global lowerSellingRange
         global spanishUnlock
@@ -391,67 +286,92 @@ def main(stdscr):
         global slaves
         global workers
         while upgradeLoop == True:
-            if timecheck1(1) == True:
-                regularSlaveFarmingAlgorithm()
-                regularMerchantSellingAlgorithm()
-                workerFarmingAlgorithm()
-            if timecheck2(10) == True:
-                ftMerchantSellingAlgorithm()
-            if timecheck3(100) == True:
-                rftMerchantSellingAlgorithm()
-            title("Upgrades")
-            statprint()
-            cprint("[1] Increase farm capacity by one acre (200)", 6, 2)
-            if u1check == False:
-                cprint("[2] Sail to cilicia (600) + 1 value of saffron", 7, 2)
-            if u2check == False:
-                cprint("[3] Expansion into spain (1,000) +2 value of saffron MU", 8, 2)
-            if u3check == False:
-                cprint("[4] Catholic Church (1,500) + 1 value of saffron", 9, 2)
-            if u4check == False:
-                cprint("[5] Trade with persians (2,000) x2 workers and slaves, -1 saffron value", 10, 2)
-            if u5check == False:
-                cprint("[6] Persians restock indian gardens with saffron (3,000) + 3 saffron value MU", 11, 2)
-            if u6check == False:
-                cprint("[7] Research into saffron medicinal purposes (6,000) + 8 saffron value", 12, 2)
+            def bruh():
+                title("Upgrades")
+                checkTimeAll()
+                statprint()
+                cprint("[1] Increase farm capacity by one acre (500)", 6, 2)
+                if u1check == False:
+                    cprint("[2] Sail to cilicia (1,000)", 7, 2)
+                if u2check == False:
+                    cprint("[3] Expansion into spain (1,500)", 8, 2)
+                if u3check == False:
+                    cprint("[4] Catholic Church Dyes (1,500)", 9, 2)
+                if u4check == False:
+                    cprint("[5] Trade with Persians (2,500)", 10, 2)
+                if u5check == False:
+                    cprint("[6] India expansion/yellow robe dyes (3,000)", 11, 2)
+                if u6check == False:
+                    cprint("[7] Research into saffron medicinal purposes (4,500)", 12, 2)
+                if u7check == False:
+                    cprint("[8] Bubonic plague hits, market saffron as cure (10,000)", 13, 2)
+            bruh()
             U_INP = stdscr.getch()
-            if U_INP == ord("1") and money >= 200:
-                money = money - 200
+            if U_INP == ord("1") and money >= 500:
+                money = money - 500
                 ogfarmCapacity = ogfarmCapacity + 1
-            elif (U_INP == ord ("2") and money >= 600) and u1check == False:
-                lowerSellingRange = lowerSellingRange + 1
-                upperSellingRange = upperSellingRange + 1
-                money = money - 600
-                u1check = True
-            elif (U_INP == ord ("3") and money >= 1000) and u2check == False:
-                lowerSellingRange = lowerSellingRange + 2
-                upperSellingRange = upperSellingRange + 2
+            elif (U_INP == ord ("2") and money >= 1000) and u1check == False:
+                regularMerchant.saffronLowerSellRange += 1
+                regularMerchant.saffronUpperSellRange += 1
                 money = money - 1000
-                spanishUnlock = True
+                u1check = True
+                stdscr.clear()
+                bruh()
+                refresh()
+            elif (U_INP == ord ("3") and money >= 1500) and u2check == False:
+                regionalMerchant.saffronLowerSellRange += 1
+                regionalMerchant.saffronUpperSellRange += 1
+                money = money - 1500
+                unlockRegionalMerchants = True
                 u2check = True
+                stdscr.clear()
+                bruh()
+                refresh()
             elif (U_INP == ord ("4") and money >= 1500) and u3check == False:
-                lowerSellingRange = lowerSellingRange + 1
-                upperSellingRange = upperSellingRange + 1
+                regionalMerchant.saffronLowerSellRange += 1
+                regionalMerchant.saffronUpperSellRange += 1
                 money = money - 1500
                 u3check = True
-            elif (U_INP == ord ("5") and money >= 2000) and u4check == False:
-                lowerSellingRange = lowerSellingRange - 1
-                upperSellingRange = upperSellingRange - 1
-                money = money - 2000
-                slaves = slaves * 2
-                workers = workers * 2
+                stdscr.clear()
+                bruh()
+                refresh()
+            elif (U_INP == ord ("5") and money >= 2500) and u4check == False:
+                farTravelingMerchant.saffronLowerSellRange -= 1
+                farTravelingMerchant.saffronUpperSellRange -= 1
+                money = money - 2500
+                slave.number *= 2
+                worker.number *= 2
+                skilledWorker.number *= 2
+                unlockFarTravelingMerchants = True
                 u4check = True
+                stdscr.clear()
+                bruh()
+                refresh()
             elif (U_INP == ord ("6") and money >= 3000) and u5check == False:
-                lowerSellingRange = lowerSellingRange + 1
-                upperSellingRange = upperSellingRange + 1
+                internationalMerchant.saffronLowerSellRange += 2
+                internationalMerchant.saffronUpperSellRange += 2
                 money = money - 3000
-                india = True
+                unlockInternationalMerchants = True
                 u5check = True
-            elif (U_INP == ord ("7") and money >= 6000) and u6check == False:
-                lowerSellingRange = lowerSellingRange + 8
-                upperSellingRange = upperSellingRange + 8
-                money = money - 3000
+                stdscr.clear()
+                bruh()
+                refresh()
+            elif (U_INP == ord ("7") and money >= 4500) and u6check == False:
+                internationalMerchant.saffronLowerSellRange += 1
+                internationalMerchant.saffronUpperSellRange += 1
+                money = money - 4500
                 u6check = True
+                stdscr.clear()
+                bruh()
+                refresh()
+            elif (U_INP == ord("8") and money >= 10000) and u7check == False:
+                internationalMerchant.saffronLowerSellRange += 4
+                internationalMerchant.saffronUpperSellRange += 4
+                money -= 10000
+                u7check = True
+                stdscr.clear()
+                bruh()
+                refresh()
             elif U_INP == ord ("m"):
                 upgradeLoop = False
                 stdscr.clear()
@@ -460,34 +380,27 @@ def main(stdscr):
 
 
 
+
     def buySlaves():
         global money
         global slaves
         global workers
-        curses.halfdelay(10)
+        curses.halfdelay(5)
         buySlaveScreenLoop = True
         while buySlaveScreenLoop == True:
-            title("slaves")
+            title("Acquire Farmers")
             statprint()
-            if timecheck1(1) == True:
-                regularSlaveFarmingAlgorithm()
-                regularMerchantSellingAlgorithm()
-                workerFarmingAlgorithm()
-            if timecheck2(10) == True:
-                ftMerchantSellingAlgorithm()
-            if timecheck3(100) == True:
-                rftMerchantSellingAlgorithm()
-            cprint("[1] Purchase a slave (30)", 6, 28)
-            cprint("[2] Hire a worker (120)", 7, 28)
+            checkTimeAll()
+            cprint("[1] Purchase a slave (150)", 6, 28)
+            cprint("[2] Hire a worker (300)", 7, 28)
+            cprint("[3] Hire a skilled worker (500)", 8, 28)
             buySlaveInput = stdscr.getch()
             if buySlaveInput == ord("1"):
-                if ( money - slavePrice ) > 0 :
-                    money = money - slavePrice
-                    slaves = slaves + 1
+                slave.buyFarmer()
             elif buySlaveInput == ord("2"):
-                if ( money - workerPrice ) > 0 :
-                    money = money - workerPrice
-                    workers = workers + 1
+                worker.buyFarmer()
+            elif buySlaveInput == ord("3"):
+                skilledWorker.buyFarmer()
             elif buySlaveInput == ord("m"):
                 buySlaveScreenLoop = False
                 stdscr.clear()
@@ -500,31 +413,25 @@ def main(stdscr):
         global farTravelingMerchants
         global reallyFarTravelingMerchants
         while buyMerchantScreenLoop == True:
-            if timecheck1(1) == True:
-                regularSlaveFarmingAlgorithm()
-                regularMerchantSellingAlgorithm()
-                workerFarmingAlgorithm()
-            if timecheck2(10) == True:
-                ftMerchantSellingAlgorithm()
-            if timecheck3(100) == True:
-                rftMerchantSellingAlgorithm()
-            title("Merchants")
+            checkTimeAll()
+            title("Hire Merchants")
             statprint()
-            cprint("[1] Buy Merchants (100)", 6, 28)
-            if spanishUnlock == True:
-                cprint("[2] Buy Far Traveling Merchants", 7, 28)
-            if india == True:
-                cprint("[3] Buy REALLY Far Traveling Merchants", 8, 28)
+            cprint("[1] Hire Merchants (150)", 6, 28)
+            if unlockRegionalMerchants == True:
+                cprint("[2] Trade With Regional Merchants (300)", 7, 28)
+            if unlockFarTravelingMerchants == True:
+                cprint("[3] Trade With Far Traveling Merchants (700)", 8, 28)
+            if unlockInternationalMerchants == True:
+                cprint("[4] Trade With International Merchants (1600)", 9, 28)
             buyMerchantsInput = stdscr.getch()
-            if buyMerchantsInput == ord("1") and money >= merchantPrice:
-                merchants = merchants + 1
-                money = money - merchantPrice
-            elif (buyMerchantsInput == ord("2") and spanishUnlock == True) and money >= ftmprice:
-                farTravelingMerchants = farTravelingMerchants + 1
-                money = money - rftmprice
-            elif (buyMerchantsInput == ord("3") and india == True) and money >= rftmprice:
-                reallyFarTravelingMerchants = reallyFarTravelingMerchants + 1
-                money = money - rftmprice
+            if buyMerchantsInput == ord("1"):
+                regularMerchant.buyMerchant()
+            elif (buyMerchantsInput == ord("2") and unlockRegionalMerchants == True):
+                regionalMerchant.buyMerchant()
+            elif (buyMerchantsInput == ord("3") and unlockFarTravelingMerchants == True):
+                farTravelingMerchant.buyMerchant()
+            elif (buyMerchantsInput == ord("4") and unlockInternationalMerchants == True):
+                internationalMerchant.buyMerchant()
             elif buyMerchantsInput == ord("m"):
                 buyMerchantScreenLoop = False
                 stdscr.clear()
